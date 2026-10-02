@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_project_form_erp_delivery_sale" model="ir.ui.view">
+        <field name="name">project.project.form.erp.delivery.sale</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="erp_delivery_management.view_project_form_erp_delivery"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='contract_value']" position="after">
+                <field name="sale_order_id" readonly="1"/>
+                <button name="action_sync_contract_from_sale" type="object" string="Sync Contract" class="btn-link" groups="erp_delivery_management.group_erp_delivery_manager" invisible="not sale_order_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

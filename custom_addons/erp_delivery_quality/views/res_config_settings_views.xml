@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_erp_delivery_quality" model="ir.ui.view">
+        <field name="name">res.config.settings.form.erp.delivery.quality</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="ERP Delivery" name="erp_delivery_quality" groups="base.group_system">
+                    <block title="Quality Gate" name="erp_delivery_quality_settings">
+                        <setting string="Minimum Go-live quality score" help="ERP projects are blocked from Go-live while their current quality score is below this company threshold.">
+                            <field name="company_id" invisible="1"/>
+                            <field name="erp_quality_threshold"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

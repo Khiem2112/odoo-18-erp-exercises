@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_erp_delivery" model="ir.ui.view">
+        <field name="name">res.partner.form.erp.delivery</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="is_erp_customer" groups="erp_delivery_management.group_erp_delivery_manager"/>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page name="erp_delivery" string="ERP Delivery" invisible="not is_erp_customer">
+                    <field name="is_erp_customer" invisible="1"/>
+                    <group>
+                        <group>
+                            <field name="ref_code"/>
+                            <field name="company_id" required="is_erp_customer" readonly="1" force_save="1" options="{'no_create': True}"/>
+                            <field name="erp_tier"/>
+                            <field name="erp_expected_users"/>
+                        </group>
+                        <group>
+                            <field name="erp_contract_start_date"/>
+                            <field name="erp_contract_end_date"/>
+                            <field name="erp_subscription_period"/>
+                            <field name="erp_currency_id" invisible="1"/>
+                            <field name="erp_subscription_value"/>
+                        </group>
+                    </group>
+                    <field name="erp_project_ids" readonly="1">
+                        <list>
+                            <field name="code"/>
+                            <field name="name"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="delivery_state"/>
+                            <field name="health_state"/>
+                            <field name="date_golive_planned"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_res_partner_filter_erp" model="ir.ui.view">
+        <field name="name">res.partner.select.erp</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="ref_code"/>
+            </xpath>
+            <xpath expr="//filter[@name='type_person']" position="before">
+                <filter string="ERP Customers" name="erp_customer" domain="[('is_erp_customer', '=', True)]"/>
+                <separator/>
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter name="group_erp_tier" string="ERP Tier" context="{'group_by': 'erp_tier'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

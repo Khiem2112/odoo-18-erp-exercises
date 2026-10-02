@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_task_form_erp_delivery" model="ir.ui.view">
+        <field name="name">project.task.form.erp.delivery</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/notebook" position="before">
+                <group string="ERP Delivery" invisible="not is_erp_delivery_task">
+                    <field name="is_erp_delivery_task" invisible="1"/>
+                    <field name="project_line_id" domain="[('project_id', '=', project_id)]"/>
+                    <field name="is_mandatory_for_golive"/>
+                    <field name="progress_weight"/>
+                    <field name="risk_level"/>
+                    <field name="risk_status"/>
+                    <field name="acceptance_state"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_search_erp_delivery" model="ir.ui.view">
+        <field name="name">project.task.search.erp.delivery</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_search_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="project_line_id"/>
+                <field name="risk_level"/>
+                <filter name="erp_mandatory" string="Mandatory for Go-live" domain="[('is_mandatory_for_golive', '=', True)]"/>
+                <filter name="erp_open_risk" string="Open ERP Risk" domain="[('risk_status', '=', 'open'), ('risk_level', 'in', ['high', 'critical'])]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

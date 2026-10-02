@@ -1,0 +1,19 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_erp_solution_user,erp.solution user,model_erp_solution,group_erp_delivery_user,1,0,0,0
+access_erp_solution_consultant,erp.solution consultant,model_erp_solution,group_erp_delivery_consultant,1,0,0,0
+access_erp_solution_manager,erp.solution manager,model_erp_solution,group_erp_delivery_manager,1,1,1,1
+access_erp_project_line_user,erp.project.line user,model_erp_project_line,group_erp_delivery_user,1,0,0,0
+access_erp_project_line_consultant,erp.project.line consultant,model_erp_project_line,group_erp_delivery_consultant,1,1,0,0
+access_erp_project_line_manager,erp.project.line manager,model_erp_project_line,group_erp_delivery_manager,1,1,1,1
+access_erp_partner_user,erp partner user,base.model_res_partner,group_erp_delivery_user,1,0,0,0
+access_erp_partner_manager,erp partner manager,base.model_res_partner,group_erp_delivery_manager,1,1,1,1
+access_erp_project_user,erp project user,project.model_project_project,group_erp_delivery_user,1,0,0,0
+access_erp_project_consultant,erp project consultant,project.model_project_project,group_erp_delivery_consultant,1,1,0,0
+access_erp_project_manager,erp project manager,project.model_project_project,group_erp_delivery_manager,1,1,1,1
+access_erp_task_user,erp task user,project.model_project_task,group_erp_delivery_user,1,0,0,0
+access_erp_task_consultant,erp task consultant,project.model_project_task,group_erp_delivery_consultant,1,1,1,0
+access_erp_task_manager,erp task manager,project.model_project_task,group_erp_delivery_manager,1,1,1,1
+access_erp_milestone_user,erp milestone user,project.model_project_milestone,group_erp_delivery_user,1,0,0,0
+access_erp_milestone_consultant,erp milestone consultant,project.model_project_milestone,group_erp_delivery_consultant,1,1,1,0
+access_erp_milestone_manager,erp milestone manager,project.model_project_milestone,group_erp_delivery_manager,1,1,1,1
+

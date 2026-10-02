@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_project_form_erp_delivery_quality" model="ir.ui.view">
+        <field name="name">project.project.form.erp.delivery.quality</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="erp_delivery_management.view_project_form_erp_delivery"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_evaluate_quality" type="object" string="Evaluate Quality" groups="erp_delivery_management.group_erp_delivery_manager" invisible="not is_erp_project or delivery_state in ('completed', 'cancelled')"/>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_quality_gates" type="object" class="oe_stat_button" icon="fa-check-square-o" groups="erp_delivery_management.group_erp_delivery_consultant" invisible="not is_erp_project">
+                    <field name="quality_gate_count" widget="statinfo" string="Quality Gates"/>
+                </button>
+            </xpath>
+            <xpath expr="//field[@name='progress_percentage']" position="after">
+                <field name="quality_score" widget="progressbar" readonly="1"/>
+                <field name="quality_threshold" readonly="1"/>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page name="erp_quality" string="Quality" invisible="not is_erp_project">
+                    <group string="Current Score">
+                        <field name="quality_task_score" readonly="1"/>
+                        <field name="quality_risk_score" readonly="1"/>
+                        <field name="quality_line_score" readonly="1"/>
+                        <field name="quality_checklist_score" readonly="1"/>
+                        <field name="quality_score" readonly="1"/>
+                    </group>
+                    <field name="quality_check_ids" context="{'default_project_id': id}">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="company_id" column_invisible="True"/>
+                            <field name="name"/>
+                            <field name="weight" sum="Weight"/>
+                            <field name="mandatory"/>
+                            <field name="passed"/>
+                            <field name="note" optional="show"/>
+                        </list>
+                    </field>
+                    <separator string="Evaluation History" groups="erp_delivery_management.group_erp_delivery_consultant"/>
+                    <field name="quality_gate_ids" readonly="1" groups="erp_delivery_management.group_erp_delivery_consultant">
+                        <list create="0" edit="0" delete="0">
+                            <field name="name"/>
+                            <field name="state"/>
+                            <field name="score"/>
+                            <field name="threshold"/>
+                            <field name="evaluator_id" widget="many2one_avatar_user"/>
+                            <field name="evaluated_at"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

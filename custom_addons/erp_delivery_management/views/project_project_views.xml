@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_project_list_erp_delivery" model="ir.ui.view">
+        <field name="name">project.project.list.erp.delivery</field>
+        <field name="model">project.project</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="health_state == 'red'" decoration-warning="health_state == 'amber'" decoration-success="health_state == 'green'">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="partner_id" domain="[('is_erp_customer', '=', True), ('company_id', '=', company_id)]" context="{'default_is_erp_customer': True, 'default_company_id': company_id}"/>
+                <field name="customer_ref_code" optional="hide"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="delivery_state"/>
+                <field name="health_state"/>
+                <field name="progress_percentage" widget="percentage"/>
+                <field name="date_golive_planned"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_project_search_erp_delivery" model="ir.ui.view">
+        <field name="name">project.project.search.erp.delivery</field>
+        <field name="model">project.project</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="customer_ref_code"/>
+                <field name="user_id"/>
+                <field name="delivery_state"/>
+                <field name="health_state"/>
+                <field name="date_golive_planned"/>
+                <filter name="my_erp_projects" string="My ERP Projects" domain="['|', ('user_id', '=', uid), ('team_member_ids', 'in', [uid])]"/>
+                <separator/>
+                <filter name="health_red" string="Red" domain="[('health_state', '=', 'red')]"/>
+                <filter name="health_amber" string="Amber" domain="[('health_state', '=', 'amber')]"/>
+                <filter name="health_green" string="Green" domain="[('health_state', '=', 'green')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_customer" string="Customer" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_pm" string="Project Manager" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_state" string="Delivery State" context="{'group_by': 'delivery_state'}"/>
+                    <filter name="group_health" string="Health" context="{'group_by': 'health_state'}"/>
+                    <filter name="group_golive" string="Planned Go-live" context="{'group_by': 'date_golive_planned:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_project_form_erp_delivery" model="ir.ui.view">
+        <field name="name">project.project.form.erp.delivery</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group[1]//field[@name='partner_id']" position="attributes">
+                <attribute name="invisible">is_erp_project</attribute>
+            </xpath>
+            <xpath expr="//header" position="inside">
+                <button name="action_start_analysis" type="object" string="Start Analysis" class="oe_highlight" groups="erp_delivery_management.group_erp_delivery_consultant" invisible="not is_erp_project or delivery_state != 'draft'"/>
+                <button name="action_start_development" type="object" string="Start Development" class="oe_highlight" groups="erp_delivery_management.group_erp_delivery_consultant" invisible="not is_erp_project or delivery_state not in ('analysis', 'uat')"/>
+                <button name="action_start_uat" type="object" string="Start UAT" class="oe_highlight" groups="erp_delivery_management.group_erp_delivery_consultant" invisible="not is_erp_project or delivery_state != 'development'"/>
+                <button name="action_mark_ready" type="object" string="Mark Ready" class="oe_highlight" groups="erp_delivery_management.group_erp_delivery_manager" invisible="not is_erp_project or delivery_state != 'uat'"/>
+                <button name="action_go_live" type="object" string="Go Live" class="oe_highlight" groups="erp_delivery_management.group_erp_delivery_manager" invisible="not is_erp_project or delivery_state != 'ready'"/>
+                <button name="action_complete" type="object" string="Complete" class="oe_highlight" groups="erp_delivery_management.group_erp_delivery_consultant" invisible="not is_erp_project or delivery_state != 'live'"/>
+                <button name="action_cancel_delivery" type="object" string="Cancel" groups="erp_delivery_management.group_erp_delivery_manager" invisible="not is_erp_project or delivery_state in ('live', 'completed', 'cancelled')"/>
+                <button name="action_restore_delivery" type="object" string="Restore" groups="erp_delivery_management.group_erp_delivery_manager" invisible="not is_erp_project or delivery_state != 'cancelled'"/>
+                <field name="delivery_state" widget="statusbar" statusbar_visible="draft,analysis,development,uat,ready,live,completed" invisible="not is_erp_project"/>
+            </xpath>
+            <xpath expr="//sheet/group[1]" position="after">
+                <group string="ERP Delivery" invisible="not is_erp_project">
+                    <group>
+                        <field name="is_erp_project" invisible="1"/>
+                        <field name="code"/>
+                        <field name="partner_id" widget="res_partner_many2one" required="is_erp_project" domain="[('is_erp_customer', '=', True), ('company_id', '=', company_id)]" context="{'default_is_erp_customer': True, 'default_company_id': company_id}"/>
+                        <field name="customer_ref_code" readonly="1"/>
+                        <field name="team_member_ids" widget="many2many_avatar_user"/>
+                        <field name="health_state" readonly="1"/>
+                        <field name="progress_percentage" widget="progressbar" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="date_golive_planned"/>
+                        <field name="date_golive_actual" readonly="1"/>
+                        <field name="duration_days"/>
+                        <field name="contract_currency_id"/>
+                        <field name="contract_value"/>
+                        <field name="cancellation_reason" placeholder="Required before cancellation"/>
+                    </group>
+                </group>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page name="erp_solution_lines" string="ERP Solutions" invisible="not is_erp_project">
+                    <field name="line_ids" context="{'default_project_id': id}">
+                        <list editable="bottom">
+                            <field name="company_id" column_invisible="True"/>
+                            <field name="currency_id" column_invisible="True"/>
+                            <field name="solution_id"/>
+                            <field name="consultant_id" widget="many2one_avatar_user"/>
+                            <field name="expected_effort" sum="Expected Effort"/>
+                            <field name="actual_effort" sum="Actual Effort"/>
+                            <field name="sale_price" sum="Sale Price"/>
+                            <field name="state"/>
+                            <field name="technical_notes" optional="hide"/>
+                        </list>
+                    </field>
+                    <group>
+                        <field name="solution_count" readonly="1"/>
+                        <field name="total_expected_effort" readonly="1"/>
+                        <field name="total_actual_effort" readonly="1"/>
+                        <field name="mandatory_task_count" readonly="1"/>
+                        <field name="mandatory_task_done_count" readonly="1"/>
+                    </group>
+                </page>
+                <page name="erp_internal_notes" string="ERP Internal Notes" invisible="not is_erp_project" groups="erp_delivery_management.group_erp_delivery_consultant">
+                    <field name="internal_notes"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="project_project_view_form_simplified_erp_delivery" model="ir.ui.view">
+        <field name="name">project.project.view.form.simplified.erp.delivery</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.project_project_view_form_simplified"/>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="is_erp_project" invisible="1"/>
+                <field name="company_id" invisible="1"/>
+            </xpath>
+            <xpath expr="//div[hasclass('o_settings_container')]" position="inside">
+                <div class="col-lg-12" invisible="not is_erp_project">
+                    <label for="partner_id" string="Customer"/>
+                    <field name="partner_id" widget="res_partner_many2one" required="is_erp_project" domain="[('is_erp_customer', '=', True), ('company_id', '=', company_id)]" context="{'default_is_erp_customer': True, 'default_company_id': company_id}"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_erp_delivery_projects" model="ir.actions.act_window">
+        <field name="name">ERP Delivery Projects</field>
+        <field name="res_model">project.project</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="view_id" ref="view_project_list_erp_delivery"/>
+        <field name="search_view_id" ref="view_project_search_erp_delivery"/>
+        <field name="domain">[('is_erp_project', '=', True)]</field>
+        <field name="context">{'default_is_erp_project': True, 'default_allow_milestones': True}</field>
+    </record>
+
+    <menuitem id="menu_erp_delivery_root" name="ERP Delivery" sequence="75" groups="erp_delivery_management.group_erp_delivery_user"/>
+    <menuitem id="menu_erp_delivery_projects" name="Projects" parent="menu_erp_delivery_root" action="action_erp_delivery_projects" sequence="10"/>
+    <menuitem id="menu_erp_delivery_configuration" name="Configuration" parent="menu_erp_delivery_root" sequence="90" groups="erp_delivery_management.group_erp_delivery_manager"/>
+    <menuitem id="menu_erp_delivery_solutions" name="Solutions" parent="menu_erp_delivery_configuration" action="action_erp_solution" sequence="10"/>
+</odoo>
+

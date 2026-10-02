@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_erp_quality_gate_list" model="ir.ui.view">
+        <field name="name">erp.quality.gate.list</field>
+        <field name="model">erp.quality.gate</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'passed'" decoration-danger="state == 'failed'" create="0" edit="0" delete="0">
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="state"/>
+                <field name="score"/>
+                <field name="threshold"/>
+                <field name="evaluator_id" widget="many2one_avatar_user"/>
+                <field name="evaluated_at"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_erp_quality_gate_form" model="ir.ui.view">
+        <field name="name">erp.quality.gate.form</field>
+        <field name="model">erp.quality.gate</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0">
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="project_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="state"/>
+                            <field name="score"/>
+                            <field name="threshold"/>
+                        </group>
+                        <group>
+                            <field name="task_score"/>
+                            <field name="risk_score"/>
+                            <field name="line_score"/>
+                            <field name="checklist_score"/>
+                            <field name="evaluator_id" widget="many2one_avatar_user"/>
+                            <field name="evaluated_at"/>
+                        </group>
+                    </group>
+                    <group string="Blockers">
+                        <field name="blocker_snapshot" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_erp_quality_gate_search" model="ir.ui.view">
+        <field name="name">erp.quality.gate.search</field>
+        <field name="model">erp.quality.gate</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="project_id"/>
+                <field name="evaluator_id"/>
+                <filter name="passed" string="Passed" domain="[('state', '=', 'passed')]"/>
+                <filter name="failed" string="Failed" domain="[('state', '=', 'failed')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_project" string="Project" context="{'group_by': 'project_id'}"/>
+                    <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
+                    <filter name="group_company" string="Company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_erp_quality_gate" model="ir.actions.act_window">
+        <field name="name">Quality Gate History</field>
+        <field name="res_model">erp.quality.gate</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_erp_quality_gate_search"/>
+    </record>
+
+    <menuitem id="menu_erp_quality_gate" name="Quality Gates" parent="erp_delivery_management.menu_erp_delivery_root" action="action_erp_quality_gate" sequence="30" groups="erp_delivery_management.group_erp_delivery_consultant"/>
+</odoo>
+

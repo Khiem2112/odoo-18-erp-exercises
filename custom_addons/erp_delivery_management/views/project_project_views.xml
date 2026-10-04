@@ -141,10 +141,30 @@
         <field name="name">ERP Delivery Projects</field>
         <field name="res_model">project.project</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="view_id" ref="view_project_list_erp_delivery"/>
         <field name="search_view_id" ref="view_project_search_erp_delivery"/>
         <field name="domain">[('is_erp_project', '=', True)]</field>
         <field name="context">{'default_is_erp_project': True, 'default_allow_milestones': True}</field>
+    </record>
+
+    <record id="action_erp_delivery_projects_view_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="10"/>
+        <field name="view_mode">list</field>
+        <field name="act_window_id" ref="action_erp_delivery_projects"/>
+        <field name="view_id" ref="view_project_list_erp_delivery"/>
+    </record>
+
+    <record id="action_erp_delivery_projects_view_kanban" model="ir.actions.act_window.view">
+        <field name="sequence" eval="20"/>
+        <field name="view_mode">kanban</field>
+        <field name="act_window_id" ref="action_erp_delivery_projects"/>
+        <field name="view_id" ref="project.view_project_kanban"/>
+    </record>
+
+    <record id="action_erp_delivery_projects_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="30"/>
+        <field name="view_mode">form</field>
+        <field name="act_window_id" ref="action_erp_delivery_projects"/>
+        <field name="view_id" ref="view_project_form_erp_delivery"/>
     </record>
 
     <menuitem id="menu_erp_delivery_root" name="ERP Delivery" sequence="75" groups="erp_delivery_management.group_erp_delivery_user"/>

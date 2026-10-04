@@ -3,3 +3,6 @@
 docs/
 University/
 scratch_doc_text.txt
+__pycache__/
+*.py[cod]
+~$*.docx

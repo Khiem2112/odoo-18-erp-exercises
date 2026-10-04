@@ -63,6 +63,18 @@ class ErpProjectLine(models.Model):
     )
     task_ids = fields.One2many("project.task", "project_line_id", string="Tasks")
 
+    @api.depends("solution_id.code", "solution_id.name", "consultant_id.name")
+    def _compute_display_name(self):
+        for line in self:
+            parts = []
+            if line.solution_id.code:
+                parts.append(f"[{line.solution_id.code}]")
+            if line.solution_id.name:
+                parts.append(line.solution_id.name)
+            if line.consultant_id:
+                parts.append(f"({line.consultant_id.name})")
+            line.display_name = " ".join(parts) if parts else _("Line #%s") % line.id
+
     _sql_constraints = [
         (
             "project_solution_unique",

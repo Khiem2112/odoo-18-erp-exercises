@@ -16,6 +16,21 @@ class ProjectTask(models.Model):
         ondelete="set null",
         check_company=True,
     )
+    solution_id = fields.Many2one(
+        "erp.solution",
+        related="project_line_id.solution_id",
+        string="ERP Solution",
+        store=True,
+        readonly=True,
+        index=True,
+    )
+    solution_group = fields.Selection(
+        related="project_line_id.solution_id.solution_group",
+        string="Solution Group",
+        store=True,
+        readonly=True,
+        index=True,
+    )
     is_mandatory_for_golive = fields.Boolean(
         string="Mandatory for Go-live", index=True, default=False
     )
@@ -65,6 +80,11 @@ class ProjectTask(models.Model):
             self.risk_status = "open"
         elif not self.risk_level:
             self.risk_status = False
+
+    @api.onchange("project_id")
+    def _onchange_project_id_reset_line(self):
+        if self.project_line_id and self.project_line_id.project_id != self.project_id:
+            self.project_line_id = False
 
     @api.constrains("project_id", "project_line_id")
     def _check_project_line_project(self):

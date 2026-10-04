@@ -32,8 +32,11 @@ class TestErpDeliveryTaskWorkflow(ErpDeliveryCase):
         self.assertEqual(self.task.acceptance_state, "draft")
         self.assertFalse(self.task.risk_level)
         self.assertFalse(self.task.risk_status)
+        self.assertEqual(self.task.solution_id, self.line.solution_id)
+        self.assertTrue(self.line.solution_id.name in self.line.display_name)
         self.assertEqual(self.project.mandatory_task_count, 1)
         self.assertEqual(self.project.mandatory_task_done_count, 0)
+        self.assertEqual(self.project.progress_percentage, 0.0)
 
     def test_delivery_user_cannot_change_acceptance_state(self):
         with self.assertRaises(AccessError):
@@ -69,12 +72,14 @@ class TestErpDeliveryTaskWorkflow(ErpDeliveryCase):
     def test_mandatory_task_must_be_accepted_for_golive(self):
         self.task.with_user(self.manager).write({"state": "1_done"})
         self.assertEqual(self.task.acceptance_state, "draft")
+        self.assertEqual(self.project.progress_percentage, 0.0)
         blockers = self.project._get_ready_blockers()
         self.assertTrue(
             any("Mandatory tasks are incomplete or unaccepted" in b for b in blockers)
         )
 
         self.task.with_user(self.manager).action_accept()
+        self.assertEqual(self.project.progress_percentage, 100.0)
         blockers = self.project._get_ready_blockers()
         self.assertFalse(
             any("Mandatory tasks are incomplete or unaccepted" in b for b in blockers)

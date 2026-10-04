@@ -206,7 +206,11 @@ class ProjectProject(models.Model):
             ):
                 total_weight[project.id] = weight or 0.0
             for project, weight in Task._read_group(
-                [("project_id", "in", self.ids), ("state", "=", "1_done")],
+                [
+                    ("project_id", "in", self.ids),
+                    ("state", "=", "1_done"),
+                    ("acceptance_state", "=", "accepted"),
+                ],
                 ["project_id"],
                 ["progress_weight:sum"],
             ):

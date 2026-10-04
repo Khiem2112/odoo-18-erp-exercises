@@ -13,6 +13,8 @@
                 <field name="delivery_state"/>
                 <field name="health_state"/>
                 <field name="progress_percentage" widget="percentage"/>
+                <field name="mandatory_task_done_count" string="Mandatory Done" optional="show"/>
+                <field name="mandatory_task_count" string="Mandatory Total" optional="hide"/>
                 <field name="date_golive_planned"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </list>
@@ -77,6 +79,12 @@
                         <field name="team_member_ids" widget="many2many_avatar_user"/>
                         <field name="health_state" readonly="1"/>
                         <field name="progress_percentage" widget="progressbar" readonly="1"/>
+                        <label for="mandatory_task_done_count" string="Mandatory Tasks"/>
+                        <div class="o_row">
+                            <field name="mandatory_task_done_count" readonly="1"/>
+                            <span> / </span>
+                            <field name="mandatory_task_count" readonly="1"/>
+                        </div>
                     </group>
                     <group>
                         <field name="date_golive_planned"/>

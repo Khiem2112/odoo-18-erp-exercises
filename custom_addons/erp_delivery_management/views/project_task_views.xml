@@ -21,6 +21,8 @@
                         <field name="is_erp_delivery_task" invisible="1"/>
                         <field name="can_manage_acceptance" invisible="1"/>
                         <field name="project_line_id" domain="[('project_id', '=', project_id)]"/>
+                        <field name="solution_id" readonly="1" invisible="not project_line_id"/>
+                        <field name="solution_group" readonly="1" invisible="not project_line_id"/>
                         <field name="is_mandatory_for_golive"/>
                         <field name="progress_weight"/>
                     </group>
@@ -39,6 +41,8 @@
         <field name="inherit_id" ref="project.view_task_tree2"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='stage_id']" position="after">
+                <field name="project_line_id" optional="show"/>
+                <field name="solution_id" optional="hide"/>
                 <field name="acceptance_state" widget="badge"
                        decoration-success="acceptance_state == 'accepted'"
                        decoration-danger="acceptance_state == 'rejected'"
@@ -62,6 +66,7 @@
         <field name="arch" type="xml">
             <xpath expr="//search" position="inside">
                 <field name="project_line_id"/>
+                <field name="solution_id"/>
                 <field name="risk_level"/>
                 <field name="acceptance_state"/>
                 <filter name="erp_mandatory" string="Mandatory for Go-live" domain="[('is_mandatory_for_golive', '=', True)]"/>
@@ -72,6 +77,7 @@
                 <group expand="0" string="ERP Delivery Group By">
                     <filter string="Acceptance State" name="group_by_acceptance_state" context="{'group_by': 'acceptance_state'}"/>
                     <filter string="ERP Solution Line" name="group_by_project_line_id" context="{'group_by': 'project_line_id'}"/>
+                    <filter string="ERP Solution" name="group_by_solution_id" context="{'group_by': 'solution_id'}"/>
                     <filter string="Risk Level" name="group_by_risk_level" context="{'group_by': 'risk_level'}"/>
                 </group>
             </xpath>

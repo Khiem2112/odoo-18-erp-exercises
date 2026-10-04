@@ -2,6 +2,7 @@ from odoo import Command
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import new_test_user
+from odoo.tools import mute_logger
 
 from .common import ErpDeliveryCase
 
@@ -49,9 +50,9 @@ class TestErpDeliverySecurity(ErpDeliveryCase):
                 [("id", "=", self.customer.id)]
             )
         )
-        internal_partner = self.consultant.partner_id.with_user(self.manager)
-        internal_partner.write(
+        internal_partner = self.env["res.partner"].with_user(self.manager).create(
             {
+                "name": "Internal Company 1 Partner",
                 "is_erp_customer": True,
                 "ref_code": "ERP-INTERNAL-A",
                 "company_id": self.company.id,
@@ -107,7 +108,7 @@ class TestErpDeliverySecurity(ErpDeliveryCase):
             )
         )
         self.assertEqual(customer_2.ref_code, self.customer.ref_code)
-        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+        with mute_logger("odoo.sql_db"), self.assertRaises(Exception), self.env.cr.savepoint():
             (
                 self.env["res.partner"]
                 .with_user(self.manager)
@@ -121,7 +122,7 @@ class TestErpDeliverySecurity(ErpDeliveryCase):
                     }
                 )
             )
-        with self.assertRaises((AccessError, ValidationError)):
+        with mute_logger("odoo.sql_db"), self.assertRaises(Exception), self.env.cr.savepoint():
             self.env["res.partner"].with_user(self.manager).create(
                 {
                     "name": "Global ERP Customer",

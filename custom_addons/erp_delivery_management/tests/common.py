@@ -7,7 +7,11 @@ class ErpDeliveryCase(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
-        cls.company_2 = cls.env["res.company"].create({"name": "ERP Company Two"})
+        cls.company_2 = (
+            cls.env["res.company"]
+            .with_context(default_company_id=False)
+            .create({"name": "ERP Company Two"})
+        )
         cls.manager = new_test_user(
             cls.env,
             login="erp_manager",

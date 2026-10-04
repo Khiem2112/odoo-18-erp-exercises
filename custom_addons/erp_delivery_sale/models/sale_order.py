@@ -5,53 +5,30 @@ from odoo.exceptions import AccessError, UserError
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
+    erp_project_ids = fields.One2many(
+        "project.project",
+        "sale_order_id",
+        string="ERP Delivery Projects",
+        groups="erp_delivery_management.group_erp_delivery_consultant",
+    )
     erp_project_id = fields.Many2one(
         "project.project",
         string="ERP Delivery Project",
-        compute="_compute_erp_projects",
+        compute="_compute_erp_project_id",
         search="_search_erp_project_id",
         groups="erp_delivery_management.group_erp_delivery_consultant",
     )
-    erp_project_count = fields.Integer(
-        compute="_compute_erp_projects",
-        groups="erp_delivery_management.group_erp_delivery_consultant",
-    )
 
-    def _compute_erp_projects(self):
-        projects_by_order = {}
-        if self.ids:
-            rows = self.env["project.project"]._read_group(
-                [("sale_order_id", "in", self.ids)],
-                ["sale_order_id"],
-                ["id:recordset"],
-            )
-            projects_by_order = {order.id: projects for order, projects in rows}
-        empty_projects = self.env["project.project"]
+    @api.depends("erp_project_ids")
+    def _compute_erp_project_id(self):
         for order in self:
-            projects = projects_by_order.get(order.id, empty_projects)
-            order.erp_project_id = projects[:1]
-            order.erp_project_count = len(projects)
+            order.erp_project_id = order.erp_project_ids[:1]
 
     def _search_erp_project_id(self, operator, value):
         supported = {"=", "!=", "in", "not in"}
         if operator not in supported:
             raise UserError(_("Unsupported ERP project search operator: %s") % operator)
-        Project = self.env["project.project"]
-        if value is False:
-            linked_order_ids = Project.search(
-                [("sale_order_id", "!=", False)]
-            ).mapped("sale_order_id").ids
-            return [("id", "not in" if operator == "=" else "in", linked_order_ids)]
-        if operator in {"=", "in"}:
-            matching_order_ids = Project.search([("id", operator, value)]).mapped(
-                "sale_order_id"
-            ).ids
-            return [("id", "in", matching_order_ids)]
-        inverse_operator = "=" if operator == "!=" else "in"
-        excluded_order_ids = Project.search(
-            [("id", inverse_operator, value)]
-        ).mapped("sale_order_id").ids
-        return [("id", "not in", excluded_order_ids)]
+        return [("erp_project_ids", operator, value)]
 
     def action_create_erp_project(self):
         self.ensure_one()
@@ -69,21 +46,23 @@ class SaleOrder(models.Model):
             raise UserError(
                 _("The ERP customer and sales order must belong to the same company.")
             )
-        project = self.env["project.project"].create(
-            {
-                "name": _("%(customer)s - %(order)s")
-                % {"customer": self.partner_id.name, "order": self.name},
-                "is_erp_project": True,
-                "partner_id": self.partner_id.id,
-                "company_id": self.company_id.id,
-                "user_id": self.env.user.id,
-                "date_start": fields.Date.context_today(self),
-                "contract_value": self.amount_total,
-                "contract_currency_id": self.currency_id.id,
-                "sale_order_id": self.id,
-                "allow_milestones": True,
-            }
-        )
+        vals = {
+            "name": _("%(customer)s - %(order)s")
+            % {"customer": self.partner_id.name, "order": self.name},
+            "is_erp_project": True,
+            "partner_id": self.partner_id.id,
+            "company_id": self.company_id.id,
+            "user_id": self.env.user.id,
+            "date_start": fields.Date.context_today(self),
+            "date_golive_planned": fields.Date.context_today(self),
+            "contract_value": self.amount_total,
+            "contract_currency_id": self.currency_id.id,
+            "sale_order_id": self.id,
+            "allow_milestones": True,
+        }
+        if self.order_line and "sale_line_id" in self.env["project.project"]._fields:
+            vals["sale_line_id"] = self.order_line[:1].id
+        project = self.env["project.project"].create(vals)
         return {
             "type": "ir.actions.act_window",
             "name": _("ERP Delivery Project"),
@@ -95,6 +74,12 @@ class SaleOrder(models.Model):
 
     def action_view_erp_project(self):
         self.ensure_one()
+        if not self.env.user.has_group(
+            "erp_delivery_management.group_erp_delivery_consultant"
+        ):
+            raise AccessError(
+                _("Only ERP Delivery Consultants and Managers can view the ERP delivery project.")
+            )
         if not self.erp_project_id:
             raise UserError(_("This sales order has no ERP delivery project."))
         return {

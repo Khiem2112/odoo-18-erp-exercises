@@ -5,6 +5,9 @@
         <field name="model">project.project</field>
         <field name="inherit_id" ref="erp_delivery_management.view_project_form_erp_delivery"/>
         <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_sale_order" type="object" class="oe_stat_button" icon="fa-dollar" string="Contract" groups="erp_delivery_management.group_erp_delivery_consultant" invisible="not is_erp_project or not sale_order_id"/>
+            </xpath>
             <xpath expr="//field[@name='contract_value']" position="after">
                 <field name="sale_order_id" readonly="1"/>
                 <button name="action_sync_contract_from_sale" type="object" string="Sync Contract" class="btn-link" groups="erp_delivery_management.group_erp_delivery_manager" invisible="not sale_order_id"/>

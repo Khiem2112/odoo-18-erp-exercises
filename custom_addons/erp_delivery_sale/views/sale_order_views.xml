@@ -6,12 +6,11 @@
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
-                <button name="action_create_erp_project" type="object" string="Create ERP Project" class="oe_highlight" groups="erp_delivery_management.group_erp_delivery_manager" invisible="state != 'sale' or erp_project_count"/>
+                <button name="action_create_erp_project" type="object" string="Create ERP Project" class="oe_highlight" groups="erp_delivery_management.group_erp_delivery_manager" invisible="state != 'sale' or erp_project_id"/>
             </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_erp_project" type="object" class="oe_stat_button" icon="fa-cubes" groups="erp_delivery_management.group_erp_delivery_consultant" invisible="not erp_project_count">
-                    <field name="erp_project_count" widget="statinfo" string="ERP Project"/>
-                </button>
+                <field name="erp_project_id" invisible="1"/>
+                <button name="action_view_erp_project" type="object" class="oe_stat_button" icon="fa-cubes" string="ERP Project" groups="erp_delivery_management.group_erp_delivery_consultant" invisible="not erp_project_id"/>
             </xpath>
         </field>
     </record>

@@ -5,7 +5,7 @@
     "category": "Sales/Sales",
     "author": "khiem nguyen",
     "license": "LGPL-3",
-    "depends": ["erp_delivery_management", "sale_management"],
+    "depends": ["erp_delivery_management", "sale_management", "sale_project"],
     "data": [
         "views/sale_order_views.xml",
         "views/project_project_views.xml",

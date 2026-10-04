@@ -1,5 +1,5 @@
 from odoo import Command, fields
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
 
 from odoo.addons.erp_delivery_management.tests.common import ErpDeliveryCase
@@ -53,7 +53,33 @@ class TestErpDeliverySale(ErpDeliveryCase):
         self.assertEqual(project.contract_value, order.amount_total)
         self.assertEqual(project.contract_currency_id, order.currency_id)
         self.assertEqual(order.erp_project_id, project)
-        self.assertEqual(order.erp_project_count, 1)
+
+        proj_view_action = order.with_user(self.manager).action_view_erp_project()
+        self.assertEqual(proj_view_action["res_model"], "project.project")
+        self.assertEqual(proj_view_action["res_id"], project.id)
+
+        so_view_action = project.with_user(self.manager).action_view_sale_order()
+        self.assertEqual(so_view_action["res_model"], "sale.order")
+        self.assertEqual(so_view_action["res_id"], order.id)
+
+        project.write({"sale_order_id": False})
+        self.assertFalse(order.erp_project_id)
+        project.write({"sale_order_id": order.id})
+        self.assertEqual(order.erp_project_id, project)
+
+        standalone_project = self.create_project(name="Standalone ERP Project")
+        self.assertFalse(standalone_project.sale_order_id)
+        with self.assertRaises(UserError):
+            standalone_project.with_user(self.manager).action_view_sale_order()
+
+        standalone_order = self.create_order()
+        with self.assertRaises(UserError):
+            standalone_order.with_user(self.manager).action_view_erp_project()
+
+        with self.assertRaises(AccessError):
+            project.with_user(self.delivery_user).action_view_sale_order()
+        with self.assertRaises(AccessError):
+            order.with_user(self.delivery_user).action_view_erp_project()
 
     def test_only_confirmed_order_can_create_project(self):
         order = self.create_order()

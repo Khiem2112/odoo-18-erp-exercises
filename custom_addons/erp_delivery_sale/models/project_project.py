@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 class ProjectProject(models.Model):
@@ -8,6 +8,9 @@ class ProjectProject(models.Model):
     sale_order_id = fields.Many2one(
         "sale.order",
         string="Source Sales Order",
+        related=False,
+        store=True,
+        readonly=False,
         copy=False,
         index=True,
         check_company=True,
@@ -65,4 +68,24 @@ class ProjectProject(models.Model):
                 % order.display_name
             )
         return True
+
+    def action_view_sale_order(self):
+        self.ensure_one()
+        if not self.env.user.has_group(
+            "erp_delivery_management.group_erp_delivery_consultant"
+        ):
+            raise AccessError(
+                _("Only ERP Delivery Consultants and Managers can view the source contract.")
+            )
+        if not self.sale_order_id:
+            raise UserError(_("This ERP project has no source contract."))
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Source Contract"),
+            "res_model": "sale.order",
+            "res_id": self.sale_order_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
+
 

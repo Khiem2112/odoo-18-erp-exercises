@@ -171,6 +171,7 @@ class ProjectProject(models.Model):
     @api.depends(
         "task_ids",
         "task_ids.state",
+        "task_ids.acceptance_state",
         "task_ids.progress_weight",
         "task_ids.is_mandatory_for_golive",
     )
@@ -192,6 +193,7 @@ class ProjectProject(models.Model):
                     ("project_id", "in", self.ids),
                     ("is_mandatory_for_golive", "=", True),
                     ("state", "=", "1_done"),
+                    ("acceptance_state", "=", "accepted"),
                 ],
                 ["project_id"],
                 ["__count"],
@@ -502,12 +504,15 @@ class ProjectProject(models.Model):
             [
                 ("project_id", "=", self.id),
                 ("is_mandatory_for_golive", "=", True),
+                "|",
                 ("state", "!=", "1_done"),
+                ("acceptance_state", "!=", "accepted"),
             ]
         )
         if incomplete_tasks:
             blockers.append(
-                _("Mandatory tasks are incomplete: %s") % ", ".join(incomplete_tasks.mapped("name"))
+                _("Mandatory tasks are incomplete or unaccepted: %s")
+                % ", ".join(incomplete_tasks.mapped("name"))
             )
         incomplete_milestones = self.env["project.milestone"].search(
             [

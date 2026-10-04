@@ -5,16 +5,52 @@
         <field name="model">project.task</field>
         <field name="inherit_id" ref="project.view_task_form2"/>
         <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_accept" string="Accept" type="object" class="oe_highlight"
+                        invisible="not is_erp_delivery_task or not can_manage_acceptance or acceptance_state == 'accepted'"/>
+                <button name="action_reject" string="Reject" type="object" class="btn-secondary"
+                        invisible="not is_erp_delivery_task or not can_manage_acceptance or acceptance_state == 'rejected'"/>
+                <button name="action_reset_acceptance" string="Reset to Draft" type="object"
+                        invisible="not is_erp_delivery_task or not can_manage_acceptance or acceptance_state == 'draft'"/>
+                <field name="acceptance_state" widget="statusbar" statusbar_visible="draft,accepted,rejected"
+                       invisible="not is_erp_delivery_task"/>
+            </xpath>
             <xpath expr="//form/sheet/notebook" position="before">
                 <group string="ERP Delivery" invisible="not is_erp_delivery_task">
-                    <field name="is_erp_delivery_task" invisible="1"/>
-                    <field name="project_line_id" domain="[('project_id', '=', project_id)]"/>
-                    <field name="is_mandatory_for_golive"/>
-                    <field name="progress_weight"/>
-                    <field name="risk_level"/>
-                    <field name="risk_status"/>
-                    <field name="acceptance_state"/>
+                    <group>
+                        <field name="is_erp_delivery_task" invisible="1"/>
+                        <field name="can_manage_acceptance" invisible="1"/>
+                        <field name="project_line_id" domain="[('project_id', '=', project_id)]"/>
+                        <field name="is_mandatory_for_golive"/>
+                        <field name="progress_weight"/>
+                    </group>
+                    <group>
+                        <field name="risk_level"/>
+                        <field name="risk_status" invisible="not risk_level" required="risk_level"/>
+                    </group>
                 </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_task_tree_erp_delivery" model="ir.ui.view">
+        <field name="name">project.task.list.erp.delivery</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_tree2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='stage_id']" position="after">
+                <field name="acceptance_state" widget="badge"
+                       decoration-success="acceptance_state == 'accepted'"
+                       decoration-danger="acceptance_state == 'rejected'"
+                       decoration-muted="acceptance_state == 'draft'"
+                       optional="show"/>
+                <field name="is_mandatory_for_golive" optional="hide"/>
+                <field name="risk_level" widget="badge"
+                       decoration-danger="risk_level == 'critical'"
+                       decoration-warning="risk_level in ('medium', 'high')"
+                       decoration-info="risk_level == 'low'"
+                       optional="show"/>
+                <field name="risk_status" optional="hide"/>
             </xpath>
         </field>
     </record>
@@ -27,10 +63,18 @@
             <xpath expr="//search" position="inside">
                 <field name="project_line_id"/>
                 <field name="risk_level"/>
+                <field name="acceptance_state"/>
                 <filter name="erp_mandatory" string="Mandatory for Go-live" domain="[('is_mandatory_for_golive', '=', True)]"/>
                 <filter name="erp_open_risk" string="Open ERP Risk" domain="[('risk_status', '=', 'open'), ('risk_level', 'in', ['high', 'critical'])]"/>
+                <filter name="erp_accepted" string="Accepted" domain="[('acceptance_state', '=', 'accepted')]"/>
+                <filter name="erp_pending_acceptance" string="Pending Acceptance" domain="[('acceptance_state', '=', 'draft')]"/>
+                <filter name="erp_rejected" string="Rejected" domain="[('acceptance_state', '=', 'rejected')]"/>
+                <group expand="0" string="ERP Delivery Group By">
+                    <filter string="Acceptance State" name="group_by_acceptance_state" context="{'group_by': 'acceptance_state'}"/>
+                    <filter string="ERP Solution Line" name="group_by_project_line_id" context="{'group_by': 'project_line_id'}"/>
+                    <filter string="Risk Level" name="group_by_risk_level" context="{'group_by': 'risk_level'}"/>
+                </group>
             </xpath>
         </field>
     </record>
 </odoo>
-

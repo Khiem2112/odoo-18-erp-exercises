@@ -590,7 +590,26 @@ class ProjectProject(models.Model):
         return self.write({"delivery_state": "completed"})
 
     def action_cancel_delivery(self):
-        return self.write({"delivery_state": "cancelled"})
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Cancel ERP Project"),
+            "res_model": "erp.project.cancel.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_project_id": self.id,
+            },
+        }
+
+    def action_cancel_with_reason(self, reason):
+        self.ensure_one()
+        return self.write(
+            {
+                "cancellation_reason": reason,
+                "delivery_state": "cancelled",
+            }
+        )
 
     def action_restore_delivery(self):
         return self.write({"delivery_state": "draft", "cancellation_reason": False})

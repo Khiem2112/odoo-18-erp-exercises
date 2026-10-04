@@ -16,4 +16,4 @@ access_erp_task_manager,erp task manager,project.model_project_task,group_erp_de
 access_erp_milestone_user,erp milestone user,project.model_project_milestone,group_erp_delivery_user,1,0,0,0
 access_erp_milestone_consultant,erp milestone consultant,project.model_project_milestone,group_erp_delivery_consultant,1,1,1,0
 access_erp_milestone_manager,erp milestone manager,project.model_project_milestone,group_erp_delivery_manager,1,1,1,1
-
+access_erp_cancel_wizard_manager,erp cancel wizard manager,model_erp_project_cancel_wizard,group_erp_delivery_manager,1,1,1,0

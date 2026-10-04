@@ -84,7 +84,7 @@
                         <field name="duration_days"/>
                         <field name="contract_currency_id"/>
                         <field name="contract_value"/>
-                        <field name="cancellation_reason" placeholder="Required before cancellation"/>
+                        <field name="cancellation_reason" readonly="1" invisible="delivery_state != 'cancelled'"/>
                     </group>
                 </group>
             </xpath>

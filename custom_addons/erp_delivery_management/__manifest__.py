@@ -11,6 +11,7 @@
         "security/ir.model.access.csv",
         "data/erp_project_sequence.xml",
         "data/ir_cron.xml",
+        "wizards/project_cancel_wizard_views.xml",
         "views/res_partner_views.xml",
         "views/erp_solution_views.xml",
         "views/project_project_views.xml",

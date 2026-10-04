@@ -30,18 +30,24 @@ class ProjectMilestone(models.Model):
             ("high", "High"),
             ("critical", "Critical"),
         ],
-        default="low",
+        string="Risk Level",
         index=True,
     )
     risk_status = fields.Selection(
         [("open", "Open"), ("mitigated", "Mitigated"), ("resolved", "Resolved")],
-        default="open",
-        required=True,
+        string="Risk Status",
         index=True,
     )
     is_erp_delivery_milestone = fields.Boolean(
         related="project_id.is_erp_project", store=True, readonly=True, index=True
     )
+
+    @api.onchange("risk_level")
+    def _onchange_risk_level(self):
+        if self.risk_level and not self.risk_status:
+            self.risk_status = "open"
+        elif not self.risk_level:
+            self.risk_status = False
 
     @api.constrains("project_id", "project_line_id")
     def _check_project_line_project(self):

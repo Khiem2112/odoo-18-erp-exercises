@@ -7,12 +7,16 @@
         <field name="arch" type="xml">
             <xpath expr="//form/sheet/group" position="after">
                 <group string="ERP Delivery" invisible="not is_erp_delivery_milestone">
-                    <field name="is_erp_delivery_milestone" invisible="1"/>
-                    <field name="company_id" invisible="1"/>
-                    <field name="project_line_id" domain="[('project_id', '=', project_id)]"/>
-                    <field name="is_mandatory_for_golive"/>
-                    <field name="risk_level"/>
-                    <field name="risk_status"/>
+                    <group>
+                        <field name="is_erp_delivery_milestone" invisible="1"/>
+                        <field name="company_id" invisible="1"/>
+                        <field name="project_line_id" domain="[('project_id', '=', project_id)]"/>
+                        <field name="is_mandatory_for_golive"/>
+                    </group>
+                    <group>
+                        <field name="risk_level"/>
+                        <field name="risk_status" invisible="not risk_level" required="risk_level"/>
+                    </group>
                 </group>
             </xpath>
         </field>

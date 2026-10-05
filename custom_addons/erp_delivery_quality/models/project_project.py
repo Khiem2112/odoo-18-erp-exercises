@@ -16,10 +16,18 @@ class ProjectProject(models.Model):
         string="Quality Gate History",
         groups="erp_delivery_management.group_erp_delivery_consultant",
     )
-    quality_task_score = fields.Float(compute="_compute_quality_score", store=True)
-    quality_risk_score = fields.Float(compute="_compute_quality_score", store=True)
-    quality_line_score = fields.Float(compute="_compute_quality_score", store=True)
-    quality_checklist_score = fields.Float(compute="_compute_quality_score", store=True)
+    quality_task_score = fields.Float(
+        compute="_compute_quality_task_score", store=True
+    )
+    quality_risk_score = fields.Float(
+        compute="_compute_quality_risk_score", store=True
+    )
+    quality_line_score = fields.Float(
+        compute="_compute_quality_line_score", store=True
+    )
+    quality_checklist_score = fields.Float(
+        compute="_compute_quality_checklist_score", store=True
+    )
     quality_score = fields.Float(
         compute="_compute_quality_score", store=True, index=True, digits=(5, 2)
     )
@@ -31,23 +39,23 @@ class ProjectProject(models.Model):
         groups="erp_delivery_management.group_erp_delivery_consultant",
     )
 
+    @api.depends("is_erp_project", "progress_percentage")
+    def _compute_quality_task_score(self):
+        for project in self:
+            if not project.is_erp_project:
+                project.quality_task_score = 0.0
+                continue
+            project.quality_task_score = min(50.0, max(0.0, project.progress_percentage * 0.5))
+
     @api.depends(
         "is_erp_project",
-        "progress_percentage",
         "task_ids.risk_level",
         "task_ids.risk_status",
         "milestone_ids.risk_level",
         "milestone_ids.risk_status",
-        "line_ids.state",
-        "quality_check_ids.weight",
-        "quality_check_ids.passed",
     )
-    def _compute_quality_score(self):
+    def _compute_quality_risk_score(self):
         risk_penalty = defaultdict(float)
-        active_lines = defaultdict(int)
-        accepted_lines = defaultdict(int)
-        checklist_weight = defaultdict(float)
-        passed_checklist_weight = defaultdict(float)
         project_ids = self.ids
         if project_ids:
             for model_name in ("project.task", "project.milestone"):
@@ -62,6 +70,20 @@ class ProjectProject(models.Model):
                 )
                 for project, level, count in rows:
                     risk_penalty[project.id] += count * (10.0 if level == "critical" else 4.0)
+
+        for project in self:
+            if not project.is_erp_project:
+                project.quality_risk_score = 0.0
+                continue
+            risk_score = max(0.0, 20.0 - risk_penalty[project.id])
+            project.quality_risk_score = min(20.0, risk_score)
+
+    @api.depends("is_erp_project", "line_ids.state")
+    def _compute_quality_line_score(self):
+        active_lines = defaultdict(int)
+        accepted_lines = defaultdict(int)
+        project_ids = self.ids
+        if project_ids:
             for project, count in self.env["erp.project.line"]._read_group(
                 [("project_id", "in", project_ids), ("state", "!=", "cancelled")],
                 ["project_id"],
@@ -74,6 +96,28 @@ class ProjectProject(models.Model):
                 ["__count"],
             ):
                 accepted_lines[project.id] = count
+
+        for project in self:
+            if not project.is_erp_project:
+                project.quality_line_score = 0.0
+                continue
+            line_score = (
+                accepted_lines[project.id] / active_lines[project.id] * 20.0
+                if active_lines[project.id]
+                else 0.0
+            )
+            project.quality_line_score = min(20.0, max(0.0, line_score))
+
+    @api.depends(
+        "is_erp_project",
+        "quality_check_ids.weight",
+        "quality_check_ids.passed",
+    )
+    def _compute_quality_checklist_score(self):
+        checklist_weight = defaultdict(float)
+        passed_checklist_weight = defaultdict(float)
+        project_ids = self.ids
+        if project_ids:
             for project, weight in self.env["erp.quality.check"]._read_group(
                 [("project_id", "in", project_ids)],
                 ["project_id"],
@@ -89,29 +133,28 @@ class ProjectProject(models.Model):
 
         for project in self:
             if not project.is_erp_project:
-                project.quality_task_score = 0.0
-                project.quality_risk_score = 0.0
-                project.quality_line_score = 0.0
                 project.quality_checklist_score = 0.0
-                project.quality_score = 0.0
                 continue
-            task_score = min(50.0, max(0.0, project.progress_percentage * 0.5))
-            risk_score = max(0.0, 20.0 - risk_penalty[project.id])
-            line_score = (
-                accepted_lines[project.id] / active_lines[project.id] * 20.0
-                if active_lines[project.id]
-                else 0.0
-            )
             total_check_weight = checklist_weight[project.id]
             checklist_score = (
                 passed_checklist_weight[project.id] / total_check_weight * 10.0
                 if total_check_weight
                 else 0.0
             )
-            project.quality_task_score = min(50.0, max(0.0, task_score))
-            project.quality_risk_score = min(20.0, max(0.0, risk_score))
-            project.quality_line_score = min(20.0, max(0.0, line_score))
             project.quality_checklist_score = min(10.0, max(0.0, checklist_score))
+
+    @api.depends(
+        "is_erp_project",
+        "quality_task_score",
+        "quality_risk_score",
+        "quality_line_score",
+        "quality_checklist_score",
+    )
+    def _compute_quality_score(self):
+        for project in self:
+            if not project.is_erp_project:
+                project.quality_score = 0.0
+                continue
             project.quality_score = min(
                 100.0,
                 max(
@@ -122,6 +165,13 @@ class ProjectProject(models.Model):
                     + project.quality_checklist_score,
                 ),
             )
+
+    def _compute_all_quality_scores(self):
+        self._compute_quality_task_score()
+        self._compute_quality_risk_score()
+        self._compute_quality_line_score()
+        self._compute_quality_checklist_score()
+        self._compute_quality_score()
 
     @api.depends("quality_gate_ids")
     def _compute_quality_gate_count(self):
@@ -141,7 +191,7 @@ class ProjectProject(models.Model):
     def _get_go_live_blockers(self):
         self.ensure_one()
         blockers = super()._get_go_live_blockers()
-        self._compute_quality_score()
+        self._compute_all_quality_scores()
         if self.quality_score < self.company_id.erp_quality_threshold:
             blockers.append(
                 _("Quality score %(score).2f is below the %(threshold).2f threshold.")
@@ -171,7 +221,6 @@ class ProjectProject(models.Model):
         for project in self:
             if not project.is_erp_project:
                 raise ValidationError(_("Quality Gate evaluation requires an ERP project."))
-            project._compute_quality_score()
             blockers = project._get_go_live_blockers()
             gates |= Gate._create_snapshot(
                 {

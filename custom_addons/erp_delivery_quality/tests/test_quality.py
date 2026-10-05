@@ -16,6 +16,7 @@ class TestErpDeliveryQuality(ErpDeliveryCase):
                 "project_id": project.id,
                 "project_line_id": line.id,
                 "state": "1_done",
+                "acceptance_state": "accepted",
                 "progress_weight": 1.0,
                 "risk_status": "resolved",
             }

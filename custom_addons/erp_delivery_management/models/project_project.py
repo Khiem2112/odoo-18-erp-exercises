@@ -32,6 +32,18 @@ class ProjectProject(models.Model):
     _inherit = "project.project"
     _check_company_auto = True
 
+    _ERP_CORE_FIELDS = {
+        "partner_id",
+        "user_id",
+        "team_member_ids",
+        "company_id",
+        "date_start",
+        "date_golive_planned",
+        "duration_days",
+        "contract_value",
+        "contract_currency_id",
+    }
+
     is_erp_project = fields.Boolean(string="ERP Delivery Project", index=True, default=False)
     code = fields.Char(string="ERP Project Code", copy=False, readonly=True, index=True)
     team_member_ids = fields.Many2many(
@@ -361,6 +373,12 @@ class ProjectProject(models.Model):
                     _("Create a new ERP delivery project instead of converting an existing project.")
                 )
         if protected_projects:
+            if self._ERP_CORE_FIELDS.intersection(vals) and not self.env.user.has_group(
+                "erp_delivery_management.group_erp_delivery_manager"
+            ):
+                raise AccessError(
+                    _("Only an ERP Delivery Manager can modify core project fields.")
+                )
             protected_projects._validate_duration_payload(vals)
             if "code" in vals:
                 raise ValidationError(_("The ERP project code is generated automatically and cannot be changed."))
@@ -368,6 +386,10 @@ class ProjectProject(models.Model):
                 raise AccessError(_("Actual Go-live is controlled by the Go-live action."))
             if "delivery_state" in vals:
                 target = vals["delivery_state"]
+                if target == "live" and erp_projects:
+                    raise ValidationError(
+                        _("Direct transition to Live is not allowed. Use the Go-live action.")
+                    )
                 for project in erp_projects:
                     project._validate_delivery_transition(target, vals)
         result = super().write(vals)
@@ -504,7 +526,7 @@ class ProjectProject(models.Model):
             blockers.append(_("Planned Go-live cannot precede the start date."))
         if not self.line_ids.filtered(lambda line: line.state != "cancelled"):
             blockers.append(_("At least one active ERP solution line is required."))
-        incomplete_tasks = self.env["project.task"].with_context(active_test=False).search(
+        incomplete_tasks = self.env["project.task"].search(
             [
                 ("project_id", "=", self.id),
                 ("is_mandatory_for_golive", "=", True),
@@ -530,7 +552,7 @@ class ProjectProject(models.Model):
                 _("Mandatory milestones are incomplete: %s")
                 % ", ".join(incomplete_milestones.mapped("name"))
             )
-        critical_tasks = self.env["project.task"].with_context(active_test=False).search(
+        critical_tasks = self.env["project.task"].search(
             [
                 ("project_id", "=", self.id),
                 ("risk_level", "=", "critical"),

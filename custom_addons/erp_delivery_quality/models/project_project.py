@@ -80,30 +80,15 @@ class ProjectProject(models.Model):
 
     @api.depends("is_erp_project", "line_ids.state")
     def _compute_quality_line_score(self):
-        active_lines = defaultdict(int)
-        accepted_lines = defaultdict(int)
-        project_ids = self.ids
-        if project_ids:
-            for project, count in self.env["erp.project.line"]._read_group(
-                [("project_id", "in", project_ids), ("state", "!=", "cancelled")],
-                ["project_id"],
-                ["__count"],
-            ):
-                active_lines[project.id] = count
-            for project, count in self.env["erp.project.line"]._read_group(
-                [("project_id", "in", project_ids), ("state", "=", "accepted")],
-                ["project_id"],
-                ["__count"],
-            ):
-                accepted_lines[project.id] = count
-
         for project in self:
             if not project.is_erp_project:
                 project.quality_line_score = 0.0
                 continue
+            active_lines = project.line_ids.filtered(lambda l: l.state != "cancelled")
+            accepted_lines = active_lines.filtered(lambda l: l.state == "accepted")
             line_score = (
-                accepted_lines[project.id] / active_lines[project.id] * 20.0
-                if active_lines[project.id]
+                len(accepted_lines) / len(active_lines) * 20.0
+                if active_lines
                 else 0.0
             )
             project.quality_line_score = min(20.0, max(0.0, line_score))

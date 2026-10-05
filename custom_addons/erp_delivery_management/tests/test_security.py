@@ -1,4 +1,4 @@
-from odoo import Command
+from odoo import Command, fields
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import new_test_user
@@ -131,4 +131,49 @@ class TestErpDeliverySecurity(ErpDeliveryCase):
                     "company_id": False,
                 }
             )
+
+    def test_consultant_cannot_modify_core_project_fields(self):
+        project = self.create_project()
+        core_field_payloads = [
+            {"partner_id": self.customer.id},
+            {"user_id": self.manager.id},
+            {"team_member_ids": [Command.set([self.manager.id])]},
+            {"company_id": self.company_2.id},
+            {"date_start": fields.Date.to_date("2026-02-01")},
+            {"date_golive_planned": fields.Date.to_date("2026-02-28")},
+            {"duration_days": 45},
+            {"contract_value": 25000.0},
+            {"contract_currency_id": self.company.currency_id.id},
+        ]
+        for payload in core_field_payloads:
+            with self.assertRaises(AccessError):
+                project.with_user(self.consultant).write(payload)
+
+    def test_manager_can_modify_core_project_fields(self):
+        project = self.create_project()
+        project.with_user(self.manager).write({
+            "contract_value": 50000.0,
+            "duration_days": 40,
+        })
+        self.assertEqual(project.contract_value, 50000.0)
+        self.assertEqual(project.duration_days, 40)
+
+    def test_res_partner_search_display_name_with_ref_code(self):
+        found = self.env["res.partner"].name_search("ERP-CUST-01")
+        found_ids = [res[0] for res in found]
+        self.assertIn(self.customer.id, found_ids)
+
+    def test_res_partner_default_company_for_erp_customer(self):
+        erp_cust = self.env["res.partner"].with_user(self.manager).create({
+            "name": "Auto Company ERP Customer",
+            "is_erp_customer": True,
+            "ref_code": "ERP-AUTO-COMP",
+        })
+        self.assertEqual(erp_cust.company_id, self.company)
+
+        regular_partner = self.env["res.partner"].with_user(self.manager).create({
+            "name": "Regular Contact Without Company",
+        })
+        self.assertFalse(regular_partner.company_id)
+
 

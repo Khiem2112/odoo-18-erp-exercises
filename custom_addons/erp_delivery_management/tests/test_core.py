@@ -1,5 +1,7 @@
+from datetime import timedelta
+
 from odoo import fields
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
 
 from .common import ErpDeliveryCase
@@ -84,3 +86,94 @@ class TestErpDeliveryTaskWorkflow(ErpDeliveryCase):
         self.assertFalse(
             any("Mandatory tasks are incomplete or unaccepted" in b for b in blockers)
         )
+
+    def test_direct_transition_to_live_is_blocked_in_write(self):
+        self.task.with_user(self.manager).action_accept()
+        self.project.with_user(self.consultant).action_start_analysis()
+        self.project.with_user(self.consultant).action_start_development()
+        self.project.with_user(self.consultant).action_start_uat()
+        self.project.with_user(self.manager).action_mark_ready()
+        self.assertEqual(self.project.delivery_state, "ready")
+
+        with self.assertRaises((ValidationError, UserError)):
+            self.project.with_user(self.manager).write({"delivery_state": "live"})
+
+    def test_action_go_live_success_and_date_actual(self):
+        self.task.with_user(self.manager).action_accept()
+        self.project.with_user(self.consultant).action_start_analysis()
+        self.project.with_user(self.consultant).action_start_development()
+        self.project.with_user(self.consultant).action_start_uat()
+        self.project.with_user(self.manager).action_mark_ready()
+        self.assertEqual(self.project.delivery_state, "ready")
+
+        self.project.with_user(self.manager).action_go_live()
+        self.assertEqual(self.project.delivery_state, "live")
+        self.assertEqual(
+            self.project.date_golive_actual,
+            fields.Date.context_today(self.project),
+        )
+
+    def test_archived_mandatory_task_does_not_block_golive(self):
+        self.task.with_user(self.manager).write({"active": False})
+        self.assertEqual(self.project.mandatory_task_count, 0)
+        self.assertEqual(self.project.mandatory_task_done_count, 0)
+        blockers = self.project._get_ready_blockers()
+        self.assertFalse(
+            any("Mandatory tasks are incomplete or unaccepted" in b for b in blockers)
+        )
+
+    def test_mandatory_milestone_incomplete_blocks_golive(self):
+        milestone = self.env["project.milestone"].with_user(self.manager).create({
+            "name": "Integration Signoff",
+            "project_id": self.project.id,
+            "is_mandatory_for_golive": True,
+            "is_reached": False,
+        })
+        self.task.with_user(self.manager).action_accept()
+        blockers = self.project._get_ready_blockers()
+        self.assertTrue(
+            any("Mandatory milestones are incomplete" in b for b in blockers)
+        )
+        milestone.with_user(self.manager).write({"is_reached": True})
+        blockers = self.project._get_ready_blockers()
+        self.assertFalse(
+            any("Mandatory milestones are incomplete" in b for b in blockers)
+        )
+
+    def test_duration_days_inverse_and_inconsistent_payload(self):
+        self.project.with_user(self.manager).write({"duration_days": 40})
+        expected_planned = self.project.date_start + timedelta(days=40)
+        self.assertEqual(self.project.date_golive_planned, expected_planned)
+
+        with self.assertRaises(ValidationError):
+            self.project.with_user(self.manager).write({
+                "duration_days": 10,
+                "date_golive_planned": self.project.date_start + timedelta(days=20),
+            })
+
+    def test_cron_recompute_erp_health(self):
+        self.assertTrue(self.env["project.project"]._cron_recompute_erp_health())
+
+    def test_batch_line_and_task_operations(self):
+        solution_2 = self.env["erp.solution"].with_user(self.manager).create({
+            "name": "Inventory Management",
+            "code": "SOL-INV",
+            "solution_group": "supply_chain",
+            "standard_effort": 50.0,
+            "service_price": 3000.0,
+        })
+        line_2 = self.add_line(
+            self.project,
+            solution_id=solution_2.id,
+            expected_effort=50.0,
+            actual_effort=10.0,
+        )
+        self.assertEqual(self.project.solution_count, 2)
+        self.assertEqual(self.project.total_expected_effort, 130.0)
+        self.assertEqual(self.project.total_actual_effort, 30.0)
+
+        line_2.with_user(self.manager).unlink()
+        self.assertEqual(self.project.solution_count, 1)
+        self.assertEqual(self.project.total_expected_effort, 80.0)
+        self.assertEqual(self.project.total_actual_effort, 20.0)
+

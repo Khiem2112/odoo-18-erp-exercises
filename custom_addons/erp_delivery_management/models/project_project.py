@@ -106,6 +106,9 @@ class ProjectProject(models.Model):
     mandatory_task_done_count = fields.Integer(
         compute="_compute_task_aggregates", store=True
     )
+    line_task_count = fields.Integer(
+        compute="_compute_line_task_count", string="Line Task Count"
+    )
     progress_percentage = fields.Float(
         compute="_compute_task_aggregates",
         store=True,
@@ -233,6 +236,19 @@ class ProjectProject(models.Model):
             denominator = total_weight[project.id]
             progress = done_weight[project.id] / denominator * 100.0 if denominator else 0.0
             project.progress_percentage = min(100.0, max(0.0, progress))
+
+    @api.depends("line_ids.task_ids")
+    def _compute_line_task_count(self):
+        task_counts = {}
+        if self.ids:
+            task_groups = self.env["project.task"]._read_group(
+                [("project_id", "in", self.ids), ("project_line_id", "!=", False)],
+                ["project_id"],
+                ["__count"],
+            )
+            task_counts = {proj.id: count for proj, count in task_groups}
+        for project in self:
+            project.line_task_count = task_counts.get(project.id, 0)
 
     @api.depends(
         "date_start",
@@ -644,6 +660,23 @@ class ProjectProject(models.Model):
 
     def action_restore_delivery(self):
         return self.write({"delivery_state": "draft", "cancellation_reason": False})
+
+    def action_view_line_tasks(self):
+        self.ensure_one()
+        return {
+            "name": _("Line Tasks: %s") % self.display_name,
+            "type": "ir.actions.act_window",
+            "res_model": "project.task",
+            "view_mode": "list,kanban,form",
+            "domain": [
+                ("project_id", "=", self.id),
+                ("project_line_id", "!=", False),
+            ],
+            "context": {
+                "default_project_id": self.id,
+                "search_default_group_by_project_line_id": 1,
+            },
+        }
 
     @api.model
     def _cron_recompute_erp_health(self):

@@ -177,3 +177,23 @@ class TestErpDeliveryTaskWorkflow(ErpDeliveryCase):
         self.assertEqual(self.project.total_expected_effort, 80.0)
         self.assertEqual(self.project.total_actual_effort, 20.0)
 
+    def test_action_view_tasks_and_line_task_counts(self):
+        self.assertEqual(self.line.task_count, 1)
+        self.assertEqual(self.project.line_task_count, 1)
+
+        line_action = self.line.action_view_tasks()
+        self.assertEqual(line_action["res_model"], "project.task")
+        self.assertEqual(line_action["view_mode"], "list,kanban,form")
+        self.assertEqual(line_action["domain"], [("project_line_id", "=", self.line.id)])
+        self.assertEqual(line_action["context"]["default_project_line_id"], self.line.id)
+        self.assertEqual(line_action["context"]["search_default_group_by_project_line_id"], 1)
+
+        project_action = self.project.action_view_line_tasks()
+        self.assertEqual(project_action["res_model"], "project.task")
+        self.assertEqual(project_action["view_mode"], "list,kanban,form")
+        self.assertEqual(
+            project_action["domain"],
+            [("project_id", "=", self.project.id), ("project_line_id", "!=", False)],
+        )
+        self.assertEqual(project_action["context"]["search_default_group_by_project_line_id"], 1)
+

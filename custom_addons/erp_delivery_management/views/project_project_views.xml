@@ -55,6 +55,14 @@
         <field name="model">project.project</field>
         <field name="inherit_id" ref="project.edit_project"/>
         <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" type="object" name="action_view_line_tasks" invisible="not is_erp_project">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value"><field name="line_task_count"/></span>
+                        <span class="o_stat_text">Line Tasks</span>
+                    </div>
+                </button>
+            </xpath>
             <xpath expr="//sheet/group[1]//field[@name='partner_id']" position="attributes">
                 <attribute name="invisible">is_erp_project</attribute>
             </xpath>
@@ -108,6 +116,8 @@
                             <field name="actual_effort" sum="Actual Effort"/>
                             <field name="sale_price" sum="Sale Price"/>
                             <field name="state"/>
+                            <field name="task_count" string="Tasks"/>
+                            <button name="action_view_tasks" type="object" title="View Tasks" string="View Tasks" class="btn btn-link float-end"/>
                             <field name="technical_notes" optional="hide"/>
                         </list>
                     </field>

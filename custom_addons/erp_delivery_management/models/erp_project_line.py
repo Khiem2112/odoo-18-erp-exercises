@@ -62,6 +62,38 @@ class ErpProjectLine(models.Model):
         groups="erp_delivery_management.group_erp_delivery_consultant"
     )
     task_ids = fields.One2many("project.task", "project_line_id", string="Tasks")
+    task_count = fields.Integer(
+        string="Task Count",
+        compute="_compute_task_count",
+    )
+
+    @api.depends("task_ids")
+    def _compute_task_count(self):
+        task_data = {}
+        if self.ids:
+            task_groups = self.env["project.task"]._read_group(
+                [("project_line_id", "in", self.ids)],
+                ["project_line_id"],
+                ["__count"],
+            )
+            task_data = {line.id: count for line, count in task_groups}
+        for line in self:
+            line.task_count = task_data.get(line.id, len(line.task_ids))
+
+    def action_view_tasks(self):
+        self.ensure_one()
+        return {
+            "name": _("Tasks: %s") % self.display_name,
+            "type": "ir.actions.act_window",
+            "res_model": "project.task",
+            "view_mode": "list,kanban,form",
+            "domain": [("project_line_id", "=", self.id)],
+            "context": {
+                "default_project_id": self.project_id.id,
+                "default_project_line_id": self.id,
+                "search_default_group_by_project_line_id": 1,
+            },
+        }
 
     @api.depends("solution_id.code", "solution_id.name", "consultant_id.name")
     def _compute_display_name(self):

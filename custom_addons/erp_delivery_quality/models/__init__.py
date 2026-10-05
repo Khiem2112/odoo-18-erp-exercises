@@ -1,3 +1,4 @@
+from . import erp_project_line
 from . import project_project
 from . import quality_check
 from . import quality_gate

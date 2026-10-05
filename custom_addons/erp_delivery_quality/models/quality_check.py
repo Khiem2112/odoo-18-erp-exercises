@@ -23,6 +23,14 @@ class ErpQualityCheck(models.Model):
         readonly=True,
         index=True,
     )
+    project_line_id = fields.Many2one(
+        "erp.project.line",
+        string="ERP Project Line",
+        index=True,
+        ondelete="cascade",
+        check_company=True,
+        domain="[('project_id', '=', project_id)]",
+    )
     name = fields.Char(required=True, index=True)
     sequence = fields.Integer(default=10)
     weight = fields.Float(required=True, default=1.0)
@@ -35,8 +43,16 @@ class ErpQualityCheck(models.Model):
         if any(check.weight < 0 for check in self):
             raise ValidationError(_("Quality check weight cannot be negative."))
 
-    @api.constrains("project_id")
+    @api.constrains("project_id", "project_line_id")
     def _check_erp_project(self):
-        if any(check.project_id and not check.project_id.is_erp_project for check in self):
-            raise ValidationError(_("Quality checks can only belong to ERP projects."))
+        for check in self:
+            if check.project_id and not check.project_id.is_erp_project:
+                raise ValidationError(_("Quality checks can only belong to ERP projects."))
+            if (
+                check.project_line_id
+                and check.project_line_id.project_id != check.project_id
+            ):
+                raise ValidationError(
+                    _("The ERP project line must belong to the quality check's project.")
+                )
 

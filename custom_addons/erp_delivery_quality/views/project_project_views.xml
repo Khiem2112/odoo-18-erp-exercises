@@ -16,6 +16,17 @@
             <xpath expr="//field[@name='progress_percentage']" position="after">
                 <field name="quality_score" widget="progressbar" readonly="1"/>
                 <field name="quality_threshold" readonly="1"/>
+                <field name="quality_system_result" readonly="1"/>
+                <field name="quality_approval_state" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']" position="attributes">
+                <attribute name="context">{'default_project_id': id, 'form_view_ref': 'erp_delivery_quality.view_erp_project_line_form_quality'}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list" position="attributes">
+                <attribute name="open_form_view">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']/list/field[@name='state']" position="after">
+                <field name="quality_score" string="Quality Score" readonly="1" optional="show"/>
             </xpath>
             <xpath expr="//notebook" position="inside">
                 <page name="erp_quality" string="Quality" invisible="not is_erp_project">
@@ -25,11 +36,18 @@
                         <field name="quality_line_score" readonly="1"/>
                         <field name="quality_checklist_score" readonly="1"/>
                         <field name="quality_score" readonly="1"/>
+                        <field name="quality_system_result" readonly="1"/>
+                        <field name="quality_approval_state" readonly="1"/>
                     </group>
-                    <field name="quality_check_ids" context="{'default_project_id': id}">
+                    <group string="Current Quality Blockers">
+                        <field name="quality_blocker_summary" nolabel="1" readonly="1"/>
+                    </group>
+                    <separator string="Project-wide Checklist"/>
+                    <field name="quality_check_ids" domain="[('project_line_id', '=', False)]" context="{'default_project_id': id, 'default_project_line_id': False}">
                         <list editable="bottom">
                             <field name="sequence" widget="handle"/>
                             <field name="company_id" column_invisible="True"/>
+                            <field name="project_line_id" column_invisible="True"/>
                             <field name="name"/>
                             <field name="weight" sum="Weight"/>
                             <field name="mandatory"/>
@@ -42,6 +60,9 @@
                         <list create="0" edit="0" delete="0">
                             <field name="name"/>
                             <field name="state"/>
+                            <field name="decision_state"/>
+                            <field name="is_override" optional="show"/>
+                            <field name="is_stale" optional="show"/>
                             <field name="score"/>
                             <field name="threshold"/>
                             <field name="evaluator_id" widget="many2one_avatar_user"/>

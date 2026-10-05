@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_erp_project_line_form_quality" model="ir.ui.view">
+        <field name="name">erp.project.line.form.quality</field>
+        <field name="model">erp.project.line</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,accepted,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_quality_details" type="object" class="oe_stat_button" icon="fa-star">
+                            <field name="quality_score" widget="statinfo" string="Quality Score"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="solution_id"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="project_id"/>
+                            <field name="consultant_id" widget="many2one_avatar_user"/>
+                            <field name="expected_effort"/>
+                            <field name="actual_effort"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="sale_price"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Tasks" name="tasks">
+                            <field name="task_ids" context="{'default_project_id': project_id, 'default_project_line_id': id}">
+                                <list create="0" delete="0">
+                                    <field name="name"/>
+                                    <field name="state"/>
+                                    <field name="acceptance_state"/>
+                                    <field name="is_mandatory_for_golive"/>
+                                    <field name="risk_level"/>
+                                    <field name="risk_status"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Quality Checklist" name="quality_checklist">
+                            <field name="quality_check_ids" context="{'default_project_id': project_id, 'default_project_line_id': id}">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="company_id" column_invisible="True"/>
+                                    <field name="name"/>
+                                    <field name="weight" sum="Weight"/>
+                                    <field name="mandatory"/>
+                                    <field name="passed"/>
+                                    <field name="note" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes" name="notes">
+                            <field name="technical_notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_erp_project_line_quality_detail" model="ir.ui.view">
+        <field name="name">erp.project.line.quality.detail</field>
+        <field name="model">erp.project.line</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="solution_id"/></h1>
+                    </div>
+                    <group>
+                        <group string="Result">
+                            <field name="quality_score" widget="progressbar"/>
+                            <field name="quality_threshold"/>
+                            <field name="quality_system_result"/>
+                        </group>
+                        <group string="Score Components">
+                            <field name="quality_task_score"/>
+                            <field name="quality_risk_score"/>
+                            <field name="quality_acceptance_score"/>
+                            <field name="quality_checklist_score"/>
+                        </group>
+                    </group>
+                    <group string="Why this result?">
+                        <field name="quality_blocker_summary" nolabel="1"/>
+                    </group>
+                    <separator string="Checklist Evidence"/>
+                    <field name="quality_check_ids" readonly="1">
+                        <list create="0" edit="0" delete="0">
+                            <field name="name"/>
+                            <field name="weight"/>
+                            <field name="mandatory"/>
+                            <field name="passed"/>
+                            <field name="note"/>
+                        </list>
+                    </field>
+                </sheet>
+                <footer>
+                    <button string="Close" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

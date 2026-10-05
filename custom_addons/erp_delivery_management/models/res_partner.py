@@ -4,17 +4,15 @@ from odoo.exceptions import AccessError, ValidationError
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
+    _rec_names_search = [
+        "complete_name",
+        "email",
+        "ref",
+        "vat",
+        "company_registry",
+        "ref_code",
+    ]
 
-    company_id = fields.Many2one(
-        "res.company",
-        string="Company",
-        default=lambda self: self.env.company,
-        compute="_compute_company_id",
-        store=True,
-        readonly=False,
-        precompute=True,
-        recursive=True,
-    )
     is_erp_customer = fields.Boolean(string="ERP Customer", index=True)
     ref_code = fields.Char(string="ERP Customer Code", index=True, copy=False)
     erp_tier = fields.Selection(
@@ -83,17 +81,23 @@ class ResPartner(models.Model):
         "erp_subscription_value",
     }
 
-    @api.depends("is_erp_customer", "parent_id", "parent_id.company_id")
-    def _compute_company_id(self):
-        for partner in self:
-            if partner.parent_id and partner.parent_id.company_id:
-                partner.company_id = partner.parent_id.company_id
-            elif partner.is_erp_customer and not partner.company_id:
-                print("Fallback into currrent usser company")
-                partner.company_id = self.env.company
+    @api.model
+    def default_get(self, fields_list):
+        defaults = super().default_get(fields_list)
+        if defaults.get("is_erp_customer") and not defaults.get("company_id") and "company_id" in fields_list:
+            defaults["company_id"] = self.env.company.id
+        return defaults
+
+    @api.onchange("is_erp_customer")
+    def _onchange_is_erp_customer(self):
+        if self.is_erp_customer and not self.company_id:
+            self.company_id = self.env.company
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("is_erp_customer") and "company_id" not in vals:
+                vals["company_id"] = self.env.company.id
         if not self.env.user.has_group(
             "erp_delivery_management.group_erp_delivery_manager"
         ):
@@ -103,6 +107,11 @@ class ResPartner(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
+        if vals.get("is_erp_customer") and "company_id" not in vals:
+            for partner in self:
+                if not partner.company_id:
+                    vals["company_id"] = self.env.company.id
+                    break
         changes_erp_company = "company_id" in vals and any(
             partner.is_erp_customer and partner.company_id.id != vals.get("company_id")
             for partner in self

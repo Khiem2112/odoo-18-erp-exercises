@@ -7,7 +7,7 @@ class SaleOrder(models.Model):
 
     erp_project_ids = fields.One2many(
         "project.project",
-        "sale_order_id",
+        "erp_source_sale_order_id",
         string="ERP Delivery Projects",
         groups="erp_delivery_management.group_erp_delivery_consultant",
     )
@@ -57,7 +57,7 @@ class SaleOrder(models.Model):
             "date_golive_planned": fields.Date.context_today(self),
             "contract_value": self.amount_total,
             "contract_currency_id": self.currency_id.id,
-            "sale_order_id": self.id,
+            "erp_source_sale_order_id": self.id,
             "allow_milestones": True,
         }
         if self.order_line and "sale_line_id" in self.env["project.project"]._fields:

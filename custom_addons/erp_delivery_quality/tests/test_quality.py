@@ -83,7 +83,7 @@ class TestErpDeliveryQuality(ErpDeliveryCase):
     def test_combined_sales_and_quality_hooks_when_sales_is_installed(self):
         project = self.create_project()
         self.add_line(project, state="accepted")
-        if "sale_order_id" not in project._fields:
+        if "erp_source_sale_order_id" not in project._fields:
             self.skipTest("erp_delivery_sale is not installed in this test database")
         self.manager.write(
             {"groups_id": [Command.link(self.env.ref("sales_team.group_sale_salesman").id)]}
@@ -91,7 +91,7 @@ class TestErpDeliveryQuality(ErpDeliveryCase):
         order = self.env["sale.order"].with_user(self.manager).create(
             {"partner_id": self.customer.id, "company_id": self.company.id}
         )
-        project.with_user(self.manager).sale_order_id = order
+        project.with_user(self.manager).erp_source_sale_order_id = order
         blockers = project.with_user(self.manager)._get_go_live_blockers()
         self.assertTrue(any("sales order" in blocker.lower() for blocker in blockers))
         self.assertTrue(any("quality score" in blocker.lower() for blocker in blockers))

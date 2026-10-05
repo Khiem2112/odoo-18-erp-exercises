@@ -1,6 +1,9 @@
+import psycopg2
+
 from odoo import Command, fields
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
+from odoo.tools import mute_logger
 
 from odoo.addons.erp_delivery_management.tests.common import ErpDeliveryCase
 
@@ -47,7 +50,13 @@ class TestErpDeliverySale(ErpDeliveryCase):
         order = self.create_order()
         action = order.with_user(self.manager).action_create_erp_project()
         project = self.env["project.project"].browse(action["res_id"])
+        self.assertEqual(project.erp_source_sale_order_id, order)
         self.assertEqual(project.sale_order_id, order)
+        self.assertEqual(
+            project._fields["sale_order_id"].related,
+            "sale_line_id.order_id",
+        )
+        self.assertFalse(project._fields["sale_order_id"].store)
         self.assertEqual(project.partner_id, order.partner_id)
         self.assertEqual(project.company_id, order.company_id)
         self.assertEqual(project.contract_value, order.amount_total)
@@ -62,13 +71,14 @@ class TestErpDeliverySale(ErpDeliveryCase):
         self.assertEqual(so_view_action["res_model"], "sale.order")
         self.assertEqual(so_view_action["res_id"], order.id)
 
-        project.write({"sale_order_id": False})
+        project.write({"erp_source_sale_order_id": False})
         self.assertFalse(order.erp_project_id)
-        project.write({"sale_order_id": order.id})
+        self.assertEqual(project.sale_order_id, order)
+        project.write({"erp_source_sale_order_id": order.id})
         self.assertEqual(order.erp_project_id, project)
 
         standalone_project = self.create_project(name="Standalone ERP Project")
-        self.assertFalse(standalone_project.sale_order_id)
+        self.assertFalse(standalone_project.erp_source_sale_order_id)
         with self.assertRaises(UserError):
             standalone_project.with_user(self.manager).action_view_sale_order()
 
@@ -93,7 +103,11 @@ class TestErpDeliverySale(ErpDeliveryCase):
         with self.assertRaises(UserError):
             order.with_user(self.manager).action_create_erp_project()
         original = self.env["project.project"].browse(action["res_id"])
-        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+        with (
+            mute_logger("odoo.sql_db"),
+            self.assertRaises(psycopg2.errors.UniqueViolation),
+            self.env.cr.savepoint(),
+        ):
             self.env["project.project"].with_user(self.manager).create(
                 {
                     "name": "Duplicate",
@@ -102,10 +116,39 @@ class TestErpDeliverySale(ErpDeliveryCase):
                     "company_id": self.company.id,
                     "user_id": self.manager.id,
                     "date_start": fields.Date.today(),
-                    "sale_order_id": order.id,
+                    "erp_source_sale_order_id": order.id,
                 }
             )
         self.assertTrue(original.exists())
+
+    def test_standard_sale_projects_can_share_the_same_order(self):
+        order = self.create_order()
+        action = order.with_user(self.manager).action_create_erp_project()
+        erp_project = self.env["project.project"].browse(action["res_id"])
+        sale_line = order.order_line[:1]
+
+        standard_projects = self.env["project.project"].with_user(self.manager).create(
+            [
+                {
+                    "name": "Standard Sales Project A",
+                    "partner_id": order.partner_id.id,
+                    "company_id": order.company_id.id,
+                    "allow_billable": True,
+                    "sale_line_id": sale_line.id,
+                },
+                {
+                    "name": "Standard Sales Project B",
+                    "partner_id": order.partner_id.id,
+                    "company_id": order.company_id.id,
+                    "allow_billable": True,
+                    "sale_line_id": sale_line.id,
+                },
+            ]
+        )
+
+        self.assertEqual(standard_projects.mapped("sale_order_id"), order)
+        self.assertFalse(standard_projects.mapped("erp_source_sale_order_id"))
+        self.assertEqual(order.erp_project_ids, erp_project)
 
     def test_sales_commercial_blocker(self):
         order = self.create_order()

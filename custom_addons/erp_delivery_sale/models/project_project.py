@@ -5,12 +5,9 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 class ProjectProject(models.Model):
     _inherit = "project.project"
 
-    sale_order_id = fields.Many2one(
+    erp_source_sale_order_id = fields.Many2one(
         "sale.order",
         string="Source Sales Order",
-        related=False,
-        store=True,
-        readonly=False,
         copy=False,
         index=True,
         check_company=True,
@@ -20,16 +17,16 @@ class ProjectProject(models.Model):
 
     _sql_constraints = [
         (
-            "erp_delivery_sale_order_unique",
-            "UNIQUE(sale_order_id)",
+            "erp_delivery_source_sale_order_unique",
+            "UNIQUE(erp_source_sale_order_id)",
             "Only one ERP delivery project can be linked to a sales order.",
         )
     ]
 
-    @api.constrains("sale_order_id", "company_id", "partner_id")
+    @api.constrains("erp_source_sale_order_id", "company_id", "partner_id")
     def _check_sale_order_consistency(self):
-        for project in self.filtered("sale_order_id"):
-            order = project.sale_order_id
+        for project in self.filtered("erp_source_sale_order_id"):
+            order = project.erp_source_sale_order_id
             if order.company_id != project.company_id:
                 raise ValidationError(
                     _("The sales order and ERP project must belong to the same company.")
@@ -42,7 +39,10 @@ class ProjectProject(models.Model):
     def _get_go_live_blockers(self):
         self.ensure_one()
         blockers = super()._get_go_live_blockers()
-        if self.sale_order_id and self.sale_order_id.state != "sale":
+        if (
+            self.erp_source_sale_order_id
+            and self.erp_source_sale_order_id.state != "sale"
+        ):
             blockers.append(_("The linked sales order must be confirmed."))
         return blockers
 
@@ -52,9 +52,9 @@ class ProjectProject(models.Model):
         ):
             raise AccessError(_("Only an ERP Delivery Manager can synchronize contract data."))
         for project in self:
-            if not project.sale_order_id:
+            if not project.erp_source_sale_order_id:
                 raise ValidationError(_("No source sales order is linked to this project."))
-            order = project.sale_order_id
+            order = project.erp_source_sale_order_id
             project.write(
                 {
                     "partner_id": order.partner_id.id,
@@ -77,13 +77,13 @@ class ProjectProject(models.Model):
             raise AccessError(
                 _("Only ERP Delivery Consultants and Managers can view the source contract.")
             )
-        if not self.sale_order_id:
+        if not self.erp_source_sale_order_id:
             raise UserError(_("This ERP project has no source contract."))
         return {
             "type": "ir.actions.act_window",
             "name": _("Source Contract"),
             "res_model": "sale.order",
-            "res_id": self.sale_order_id.id,
+            "res_id": self.erp_source_sale_order_id.id,
             "view_mode": "form",
             "target": "current",
         }
